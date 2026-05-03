@@ -1,4 +1,5 @@
 // --- CONFIGURATION API ---
+// const PRODUCTION_API_BASE_URL = 'https://bira-v4mt.onrender.com';
 const PRODUCTION_API_BASE_URL = 'https://bira-v4mt.onrender.com';
 
 const API_BASE_URL =
@@ -105,7 +106,7 @@ if (contactForm) {
 
         async function sendRequest(isRetry = false) {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 90000);
 
             try {
                 btn.disabled = true;
