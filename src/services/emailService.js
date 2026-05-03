@@ -1,55 +1,49 @@
-const nodemailer = require('nodemailer'); //[cite: 6]
-const ejs = require('ejs'); //[cite: 6]
-const path = require('path'); //[cite: 6]
+const { Resend } = require('resend');
+const ejs = require('ejs');
+const path = require('path');
+const logger = require('../utils/logger');
 
-// --- MODIFICATION : Chemin vers le logger dans src/utils/ ---
-// On utilise '../' pour sortir de 'services' et entrer dans 'utils'
-const logger = require('../utils/logger'); 
+// Initialisation de Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Configuration et validation des identifiants au démarrage
+/**
+ * Validation de la configuration au démarrage
+ */
 const verifyEmailConfig = () => {
-    const { EMAIL_USER, EMAIL_PASS } = process.env;
+    const { RESEND_API_KEY, EMAIL_TO } = process.env;
     const isProd = process.env.NODE_ENV === 'production';
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
+    if (!RESEND_API_KEY) {
         if (isProd) {
-            logger.error('FATAL: EMAIL_USER and EMAIL_PASS are required in production!');
+            logger.error('FATAL: RESEND_API_KEY is required in production!');
             process.exit(1);
         } else {
-            logger.warn('Email service not configured: EMAIL_USER or EMAIL_PASS missing in .env');
+            logger.warn('Email service not configured: RESEND_API_KEY missing in .env');
         }
         return false;
     }
-    logger.info('Email service configuration detected');
+
+    if (!EMAIL_TO) {
+        logger.warn('EMAIL_TO is not set, emails will fail to send if not provided in request');
+    }
+
+    logger.info('Resend email service configuration detected');
     return true;
 };
 
-// Initialisation de la vérification au démarrage
+// Vérification immédiate
 verifyEmailConfig();
 
 /**
- * Crée et retourne un transporteur Nodemailer
- */
-const getTransporter = () => {
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        },
-    });
-};
-
-/**
- * Envoie un e-mail de notification de contact
+ * Envoie un e-mail de notification de contact via Resend
  * @param {Object} data - Données du formulaire (name, email, projectType, message)
  */
 const sendContactEmail = async (data) => {
     const { name, email, projectType, message } = data;
-    const { EMAIL_USER, EMAIL_PASS, EMAIL_TO } = process.env;
+    const { RESEND_API_KEY, EMAIL_TO } = process.env;
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
-        throw new Error('Email configuration missing: EMAIL_USER and EMAIL_PASS are required');
+    if (!RESEND_API_KEY) {
+        throw new Error('Email configuration missing: RESEND_API_KEY is required');
     }
 
     try {
@@ -58,30 +52,32 @@ const sendContactEmail = async (data) => {
             { name, email, projectType, message }
         );
 
-        const recipient = EMAIL_TO || EMAIL_USER;
-        logger.info('Preparing to send contact email', {
+        const recipient = EMAIL_TO;
+        
+        logger.info('Preparing to send contact email via Resend', {
             to: recipient,
             replyTo: email
         });
 
-        const mailOptions = {
-            from: `"BIRABRICK Contact Form" <${EMAIL_USER}>`,
+        const { data: resendData, error } = await resend.emails.send({
+            from: 'BIRABRICK <onboarding@resend.dev>', // Utiliser le domaine vérifié plus tard
             to: recipient,
-            replyTo: email,
+            reply_to: email,
             subject: `New Contact Form Submission from ${name}`,
             html: emailHtml,
-        };
+        });
 
-        const transporter = getTransporter();
-        const result = await transporter.sendMail(mailOptions);
-        return result;
+        if (error) {
+            throw error;
+        }
+
+        return resendData;
+
     } catch (error) {
-        logger.error('Email sending failed', {
+        logger.error('Resend email sending failed', {
             message: error.message,
             code: error.code,
-            command: error.command,
-            responseCode: error.responseCode,
-            response: error.response
+            statusCode: error.statusCode
         });
         throw error;
     }
@@ -90,4 +86,4 @@ const sendContactEmail = async (data) => {
 module.exports = {
     sendContactEmail,
     verifyEmailConfig
-}; 
+};

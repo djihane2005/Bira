@@ -29,7 +29,7 @@ const PORT = process.env.PORT || 3000;
 // Validation de l'environnement au démarrage
 const isProduction = process.env.NODE_ENV === 'production';
 
-const requiredEnvVars = ['COOKIE_SECRET', 'EMAIL_USER', 'EMAIL_PASS', 'FRONTEND_ORIGINS'];
+const requiredEnvVars = ['COOKIE_SECRET', 'RESEND_API_KEY', 'EMAIL_TO', 'FRONTEND_ORIGINS'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {

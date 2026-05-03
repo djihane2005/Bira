@@ -18,10 +18,9 @@ Add the following environment variables in the Render Dashboard (**Settings > En
 |----------|-------------|
 | `NODE_ENV` | Set to `production` |
 | `COOKIE_SECRET` | A long, random string for signing cookies |
-| `EMAIL_USER` | Your Gmail address (e.g., `example@gmail.com`) |
-| `EMAIL_PASS` | Your Gmail [App Password](https://myaccount.google.com/apppasswords) (16 chars, no spaces) |
-| `EMAIL_TO` | (Optional) Destination email. Defaults to `EMAIL_USER` if missing. |
-| `FRONTEND_ORIGINS` | `https://birabrick.netlify.app` (comma-separated list of allowed origins) |
+| `RESEND_API_KEY` | Your [Resend API Key](https://resend.com/api-keys) (starts with `re_`) |
+| `EMAIL_TO` | Destination email where you want to receive messages |
+| `FRONTEND_ORIGINS` | `https://birabrick.netlify.app` (comma-separated list) |
 
 > [!IMPORTANT]
 > Do **not** set `PORT` manually. Render provides `process.env.PORT` automatically.
