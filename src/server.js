@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -86,6 +87,7 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'x-csrf-token']
 };
 
+app.options('*', cors(corsOptions)); // Handle preflight
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '20kb' }));
 app.use(helmet());
@@ -109,14 +111,16 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.get('/api/csrf-token', (req, res) => {
-    const csrfToken = require('crypto').randomBytes(32).toString('hex');
+    const timestamp = Date.now();
+    const nonce = crypto.randomBytes(32).toString('hex');
+    const data = `${timestamp}.${nonce}`;
+    
+    const signature = crypto
+        .createHmac('sha256', process.env.COOKIE_SECRET)
+        .update(data)
+        .digest('hex');
 
-    res.cookie('_csrf_token', csrfToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'None' : 'Lax',
-        signed: true,
-    });
+    const csrfToken = `${data}.${signature}`;
 
     res.json({ csrfToken });
 });

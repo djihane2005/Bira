@@ -1,5 +1,4 @@
 // --- CONFIGURATION API ---
-// const PRODUCTION_API_BASE_URL = 'https://birabrickproject.onrender.com';
 const PRODUCTION_API_BASE_URL = 'https://bira-v4mt.onrender.com';
 
 const API_BASE_URL =
@@ -7,7 +6,7 @@ const API_BASE_URL =
     ? 'http://127.0.0.1:3000'
     : PRODUCTION_API_BASE_URL;
 
-// After Render deploy, replace birabrickproject.onrender.com with the real Render service URL if different.
+console.log('API_BASE_URL:', API_BASE_URL);
 
 // Gestion du menu mobile
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -18,6 +17,9 @@ if (mobileMenuBtn) {
         mobileMenu.classList.toggle('hidden');
     });
 }
+
+// Global CSRF Token storage
+let currentCsrfToken = "";
 
 // Initialisation du CAPTCHA et CSRF
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,6 +42,8 @@ async function fetchCsrfToken() {
     const submitBtn = document.getElementById('submit-btn');
     const csrfField = document.getElementById('csrf-token-field');
     
+    console.log('Fetching CSRF token from:', `${API_BASE_URL}/api/csrf-token`);
+    
     try {
         const response = await fetch(`${API_BASE_URL}/api/csrf-token`, { 
             credentials: 'include' 
@@ -47,8 +51,10 @@ async function fetchCsrfToken() {
         if (!response.ok) throw new Error('Failed to fetch CSRF token');
         
         const data = await response.json();
+        currentCsrfToken = data.csrfToken;
         if (csrfField) csrfField.value = data.csrfToken;
         if (submitBtn) submitBtn.disabled = false;
+        return data.csrfToken;
     } catch (err) {
         console.error("Erreur de récupération du token CSRF:", err);
         if (submitBtn) {
@@ -91,62 +97,76 @@ if (contactForm) {
             return;
         }
 
-        // Timeout de 10 secondes
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        try {
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            btnText.textContent = "SENDING...";
-
-            const response = await fetch(`${API_BASE_URL}/api/contact`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-csrf-token': data.csrfToken 
-                },
-                body: JSON.stringify(data),
-                credentials: 'include',
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-            const result = await response.json();
-
-            if (response.ok) {
-                contactForm.classList.add('hidden');
-                document.getElementById('success-view').classList.remove('hidden');
-            } else if (response.status === 400 && result.errors) {
-                result.errors.forEach(err => {
-                    const fieldName = err.path || err.param;
-                    const errorEl = document.getElementById(`${fieldName}-error`);
-                    if (errorEl) {
-                        errorEl.textContent = err.msg;
-                        errorEl.classList.remove('hidden');
-                    }
-                });
-            } else {
-                const captchaError = document.getElementById('captcha_ans-error');
-                captchaError.textContent = result.message || "Une erreur est survenue";
-                captchaError.classList.remove('hidden');
-            }
-        } catch (error) {
-            clearTimeout(timeoutId);
-            console.error("Erreur:", error);
-            const captchaError = document.getElementById('captcha_ans-error');
-            captchaError.classList.remove('hidden');
-            
-            if (error.name === 'AbortError') {
-                captchaError.textContent = "Request timed out. Please check if the backend is running.";
-            } else {
-                captchaError.textContent = "Backend unavailable. Please check the server URL.";
-            }
-        } finally {
-            btn.disabled = false;
-            spinner.classList.add('hidden');
-            btnText.textContent = "SEND MESSAGE";
+        // Si le token est manquant, on tente de le récupérer avant
+        if (!currentCsrfToken) {
+            const token = await fetchCsrfToken();
+            if (!token) return;
         }
+
+        async function sendRequest(isRetry = false) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            try {
+                btn.disabled = true;
+                spinner.classList.remove('hidden');
+                btnText.textContent = "SENDING...";
+
+                const response = await fetch(`${API_BASE_URL}/api/contact`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-csrf-token': currentCsrfToken 
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                const result = await response.json();
+
+                if (response.ok) {
+                    contactForm.classList.add('hidden');
+                    document.getElementById('success-view').classList.remove('hidden');
+                } else if (response.status === 403 && !isRetry) {
+                    // Si erreur CSRF, on rafraîchit le token et on réessaie une fois
+                    console.warn("CSRF 403 detected, retrying with fresh token...");
+                    await fetchCsrfToken();
+                    return await sendRequest(true);
+                } else if (response.status === 400 && result.errors) {
+                    result.errors.forEach(err => {
+                        const fieldName = err.path || err.param;
+                        const errorEl = document.getElementById(`${fieldName}-error`);
+                        if (errorEl) {
+                            errorEl.textContent = err.msg;
+                            errorEl.classList.remove('hidden');
+                        }
+                    });
+                } else {
+                    const captchaError = document.getElementById('captcha_ans-error');
+                    captchaError.textContent = result.message || "Une erreur est survenue";
+                    captchaError.classList.remove('hidden');
+                }
+            } catch (error) {
+                clearTimeout(timeoutId);
+                console.error("Erreur:", error);
+                const captchaError = document.getElementById('captcha_ans-error');
+                captchaError.classList.remove('hidden');
+                
+                if (error.name === 'AbortError') {
+                    captchaError.textContent = "Request timed out. Please check if the backend is running.";
+                } else {
+                    captchaError.textContent = "Backend unavailable. Please check the server URL.";
+                }
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                btnText.textContent = "SEND MESSAGE";
+            }
+        }
+
+        await sendRequest();
     });
 }
 
