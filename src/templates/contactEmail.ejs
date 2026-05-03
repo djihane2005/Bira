@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Contact Form Submission</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcfaf8; /* sand */
+            color: #3b2518; /* primary */
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            border-top: 5px solid #c05c2a; /* brick */
+        }
+        h1 {
+            color: #c05c2a; /* brick */
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        strong {
+            color: #3b2518; /* primary */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>New Contact Form Submission</h1>
+        <p><strong>Name:</strong> <%= name %></p>
+        <p><strong>Email:</strong> <%= email %></p>
+        <p><strong>Project Type:</strong> <%= projectType %></p>
+        <p><strong>Message:</strong> <%= message %></p>
+        <p>Thank you for using our contact form.</p>
+    </div>
+</body>
+</html>

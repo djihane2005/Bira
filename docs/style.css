@@ -1,0 +1,27 @@
+/* Personnalisation de la barre de défilement aux couleurs de BIRABRICK */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #fcfaf8; 
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3b2518; 
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #c05c2a; 
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* Sélection de texte */
+::selection {
+    background-color: #c05c2a;
+    color: white;
+}

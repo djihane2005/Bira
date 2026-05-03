@@ -1,0 +1,14 @@
+openapi: 3.0.0
+info:
+  title: BIRABRICK API
+  description: Documentation de l'API pour le projet de construction BIRABRICK
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/contact:
+    post:
+      summary: Envoie le formulaire de contact
+      responses:
+        '200':
+          description: Email envoyé avec succès
